@@ -10,6 +10,23 @@ DBeaver'da `otel_db` veritabanına bağlı bir SQL editörü açıp [şema ve ö
 
 Ardından [oda durumu betiğini](database/03_konaklama_oda_durumu.sql) çalıştır. Onaylı rezervasyonla check-in yapıldığında boş oda dolu olur. Check-out yapıldığında dolu oda temizlikte durumuna geçer.
 
+Son olarak [işlem kayıtları, prosedürler, görünümler ve indeksler betiğini](database/04_islemler_ve_raporlar.sql) çalıştır. Boş oda listesinin döndürdüğü imleci `CALL` ile aynı transaction içinde `FETCH` et. Check-out prosedürü konaklamayı kapatır, oda durumunu tetikleyici üzerinden günceller, ödemeyi kaydeder ve rezervasyonu tamamlar. Bu işlemlerden biri hata verirse çağrıdaki tüm değişiklikler geri alınır.
+
+Oda bedeli rezervasyonun her gecesi için geçerli sezon fiyatından hesaplanır. Sezon kaydı olmayan gecelerde oda tipinin temel fiyatı kullanılır. Aylık doluluk, check-in yapılmış rezervasyonların ilgili aya düşen geceleri üzerinden hesaplanır. Gelir, ödeme tarihine göre aya yazılır.
+
+## SQL doğrulaması ve indeks ölçümü
+
+[İşlem testi](database/test_islemler.sql) ilk örnek veri seti üzerinde müsaitliği, sezon geçişi ve hizmet tutarını, görünümleri, işlem geçmişini, aylık raporu ve geçersiz ödeme sırasında check-out değişikliklerinin geri alındığını kontrol eder. Test kayıtları işlem sonunda geri alınır.
+
+[İndeks ölçüm betiği](database/indeks_karsilastirma.sql), örnek rezervasyonlardan türetilen 100.000 satırlık geçici tabloda aynı tarih sorgusunu iki kez çalıştırır. PostgreSQL 14 üzerinde bir `EXPLAIN ANALYZE` çalıştırmasında alınan sonuçlar aşağıdadır. Süreler ortama ve önbelleğe göre değişebilir.
+
+| Sorgu | Tarama | Süre |
+| --- | --- | ---: |
+| İndekssiz | Seq Scan | 4,623 ms |
+| Tarih bileşik indeksiyle | Index Only Scan | 0,040 ms |
+
+Oda numarası ve misafir e-postası, ilk betikteki `UNIQUE` kısıtları üzerinden indekslenir.
+
 ## ER diyagramı
 
 ```mermaid
