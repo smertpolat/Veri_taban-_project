@@ -57,3 +57,20 @@ erDiagram
 ```
 
 Rezervasyon planlanan tarihleri, konaklama ise gerçekleşen giriş ve çıkış zamanlarını tutar. `konaklama_hizmeti`, kullanılan hizmeti adedi ve işlem anındaki birim fiyatıyla kaydeder. `islem_log`, farklı tablolardan gelen işlem geçmişini saklamak için kaynak tablo adını ve kayıt kimliğini tutar.
+
+## Spring Boot backend
+
+Java 21 ve Maven gerekir. PostgreSQL kurulum betiklerini çalıştırdıktan sonra proje kökünde:
+
+```powershell
+$env:OTEL_DB_PASSWORD = Read-Host 'PostgreSQL parolası' -MaskInput
+mvn -f backend/pom.xml spring-boot:run
+```
+
+Varsayılan bağlantı `jdbc:postgresql://localhost:5432/otel_db`, kullanıcı ise `postgres`. Gerekirse `OTEL_DB_URL` ve `OTEL_DB_USER` ile değiştir. API yerel geliştirme için `127.0.0.1:8080` adresini dinler.
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:8080/api/odalar/musait?giris=2027-06-01&cikis=2027-06-03&odaTipiId=1'
+```
+
+Controller isteği alır, Service tarih aralığını ve oda tipi kimliğini doğrular, Repository `bos_odalari_listele` prosedürünü çağırıp imleci aynı transaction içinde okur.
