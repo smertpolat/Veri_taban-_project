@@ -74,3 +74,27 @@ Invoke-RestMethod 'http://127.0.0.1:8080/api/odalar/musait?giris=2027-06-01&ciki
 ```
 
 Controller isteği alır, Service tarih aralığını ve oda tipi kimliğini doğrular, Repository `bos_odalari_listele` prosedürünü çağırıp imleci aynı transaction içinde okur.
+
+### Misafir kaydı ve giriş
+
+IntelliJ IDEA'da Maven bağımlılıklarını yenile ve `OtelApplication` çalıştırma yapılandırmasında `OTEL_DB_PASSWORD` değişkenini tanımla. Postman isteklerinde taban adres `http://127.0.0.1:8080`.
+
+1. `POST /api/auth/kayit` için **Body → raw → JSON** seç. Başarılı kayıt `201 Created`, aynı kullanıcı adı, e-posta veya kimlik numarasıyla tekrar kayıt `409 Conflict` döndürür.
+
+   ```json
+   {
+     "ad": "Deneme",
+     "soyad": "Misafir",
+     "kimlikNo": "TEST-0001",
+     "telefon": "05550000000",
+     "eposta": "deneme@example.com",
+     "dogumTarihi": "2000-01-01",
+     "kullaniciAdi": "deneme",
+     "parola": "OrnekParola2026!"
+   }
+   ```
+
+2. `POST /api/auth/giris` isteğine `{"kullaniciAdi":"deneme","parola":"OrnekParola2026!"}` gönder. Yanıttaki `token` değerini kopyala.
+3. `GET /api/auth/ben` isteğinde **Authorization → Bearer Token** alanına tokenı yapıştır. Kullanıcı adı ve rol döner. Token olmadan aynı istek `401 Unauthorized` döndürür.
+
+JWT bir saat geçerlidir. Uygulama her başlatmada yeni bir imzalama anahtarı üretir. Spring Boot'u yeniden başlatırsan tekrar giriş yap.
