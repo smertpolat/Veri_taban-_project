@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/ben").hasAnyRole("misafir", "resepsiyon", "yonetici")
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/rezervasyonlar", "/api/rezervasyonlar/**").hasRole("misafir")
+                        .requestMatchers("/api/resepsiyon/**").hasRole("resepsiyon")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(authentication)))
                 .build();
