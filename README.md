@@ -1,6 +1,14 @@
 # Otel Rezervasyon ve Konaklama Yönetim Sistemi
 
-Projenin veritabanı PostgreSQL, uygulama katmanı Spring Boot olarak planlandı.
+Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile geliştiriliyor. Veritabanı erişiminde JdbcTemplate kullanılıyor.
+
+## Mevcut durum ve mimari
+
+- `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
+- `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
+- Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
+- Sıradaki geliştirme oda tipi ve oda yönetimi API'leri. Ardından sezon fiyatı, ek hizmet ve personel yönetimi, rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
+- Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
 
 ## PostgreSQL kurulumu
 
@@ -60,7 +68,14 @@ Rezervasyon planlanan tarihleri, konaklama ise gerçekleşen giriş ve çıkış
 
 ## Spring Boot backend
 
-Java 21 ve Maven gerekir. PostgreSQL kurulum betiklerini çalıştırdıktan sonra proje kökünde:
+Java 21 ve Maven gerekir. PostgreSQL kurulum betiklerini çalıştırdıktan sonra IntelliJ IDEA'da aşağıdaki adımlarla uygulamayı başlat:
+
+1. `backend/pom.xml` dosyasını Maven projesi olarak yükle ve Maven bağımlılıklarını yenile. Project SDK olarak Java 21 seç.
+2. `OtelApplication.java` için bir Application çalıştırma yapılandırması oluştur.
+3. **Run → Edit Configurations → Environment variables** alanında `OTEL_DB_PASSWORD` değişkenini kendi PostgreSQL parolanla tanımla.
+4. **Run** ile başlat. Konsolda `Tomcat started on port 8080` yazınca Postman isteklerini gönderebilirsin. **Stop** ile uygulamayı durdur.
+
+Parola içeren çalıştırma yapılandırmasını Git'e ekleme. Terminalden başlatmayı tercih edersen proje kökünde PowerShell 7 ile şu komutları kullan:
 
 ```powershell
 $env:OTEL_DB_PASSWORD = Read-Host 'PostgreSQL parolası' -MaskInput
@@ -98,3 +113,66 @@ IntelliJ IDEA'da Maven bağımlılıklarını yenile ve `OtelApplication` çalı
 3. `GET /api/auth/ben` isteğinde **Authorization → Bearer Token** alanına tokenı yapıştır. Kullanıcı adı ve rol döner. Token olmadan aynı istek `401 Unauthorized` döndürür.
 
 JWT bir saat geçerlidir. Uygulama her başlatmada yeni bir imzalama anahtarı üretir. Spring Boot'u yeniden başlatırsan tekrar giriş yap.
+
+### Rezervasyon işlemleri
+
+Bu isteklerde Postman'ın **Authorization → Bearer Token** alanına misafir hesabının tokenını gir. JSON gönderilen isteklerde **Body → raw → JSON** seç. Adreslerin başına `http://127.0.0.1:8080` ekle.
+
+| Yöntem | Yol | İşlem | Başarılı yanıt |
+| --- | --- | --- | --- |
+| POST | `/api/rezervasyonlar` | Rezervasyon oluşturma | `201`, rezervasyon bilgileri |
+| GET | `/api/rezervasyonlar` | Giriş yapan misafirin rezervasyonları | `200`, liste |
+| PUT | `/api/rezervasyonlar/{id}/iptal` | Kendi rezervasyonunu iptal etme | `204`, boş yanıt |
+
+Rezervasyon oluşturma gövdesi aşağıdaki biçimdedir. `odaId` için müsait oda aramasından dönen bir kimliği seç. Tarihleri test gününe göre düzenle.
+
+```json
+{
+  "odaId": 1,
+  "girisTarihi": "2027-06-01",
+  "cikisTarihi": "2027-06-03",
+  "kisiSayisi": 2
+}
+```
+
+Giriş tarihi bugün veya gelecekte olmalı, çıkış tarihi girişten sonra olmalıdır. Oda kapasitesi kişi sayısını karşılamalıdır. Yeni rezervasyon `onayli` durumunda oluşur. Misafir kimliği JWT'deki kullanıcıdan bulunur.
+
+Çakışan tarihler veya uygun olmayan oda/kapasite `409` döndürür. İptal adresindeki `{id}` yerine rezervasyon kimliğini yaz. Başkasına ait veya bulunamayan rezervasyon `404` döndürür. Başlamış ya da tamamlanmış konaklama iptal edilemez ve `409` döner. İptal edilmiş rezervasyon için tekrar iptal isteği `204` döndürür.
+
+### Resepsiyon işlemleri
+
+Bu isteklerde `resepsiyon` rolündeki hesabın tokenını kullan. Hesabın `kullanici.personel_id` alanı bir personel kaydına bağlı olmalıdır. İlk SQL betiği personel ve kullanıcı hesabı oluşturmuyor. Personel hesabı yönetimi geliştirme sırasındadır. `/api/auth/kayit` üzerinden açılan hesaplar `misafir` rolündedir. Mevcut bir resepsiyon hesabıyla `/api/auth/giris` üzerinden token alınabilir.
+
+| Yöntem | Yol | İşlem | Başarılı yanıt |
+| --- | --- | --- | --- |
+| GET | `/api/resepsiyon/gunluk-giris-cikis` | PostgreSQL görünümünden bugünkü giriş ve çıkışlar | `200`, liste |
+| POST | `/api/resepsiyon/rezervasyonlar/{id}/check-in` | Konaklamayı başlatma | `201`, `konaklamaId` |
+| POST | `/api/resepsiyon/konaklamalar/{id}/hizmetler` | Konaklamaya ek hizmet ekleme | `201`, `konaklamaHizmetiId` |
+| GET | `/api/resepsiyon/konaklamalar/{id}/tutar` | Prosedür ile toplam tutar hesaplama | `200`, `odaTutari`, `hizmetTutari`, `toplam` |
+| POST | `/api/resepsiyon/konaklamalar/{id}/check-out` | Ödeme kaydı ve konaklamayı kapatma | `204`, boş yanıt |
+
+Check-in adresindeki `{id}` rezervasyon kimliğidir. Diğer üç konaklama adresinde check-in yanıtındaki `konaklamaId` kullanılır.
+
+Check-in isteğinin gövdesi boştur. Rezervasyon onaylı, oda boş olmalıdır. PostgreSQL'in güncel tarihi rezervasyonun giriş gününe eşit veya daha ileri, çıkış gününden önce olmalıdır. Başarılı işlemde oda tetikleyiciyle `dolu` olur. Uygun olmayan veya tekrar edilen check-in `409` döndürür.
+
+Hizmet ekleme gövdesi aşağıdaki biçimdedir. `hizmetId`, `ek_hizmet` tablosundaki kimliktir. Adet pozitif olmalıdır. Birim fiyat hizmet kaydından okunup işlem anındaki fiyat olarak saklanır.
+
+```json
+{"hizmetId": 1, "adet": 2}
+```
+
+Check-out gövdesinde ödeme türü `nakit` veya `kart` olabilir.
+
+```json
+{"odemeTuru": "kart"}
+```
+
+Check-out prosedürü tutarı hesaplar, konaklamayı kapatır, ödemeyi kaydeder, odayı `temizlikte` ve rezervasyonu `tamamlandi` yapar. İşlemler aynı transaction içinde çalışır. Başarısızlıkta değişiklikler geri alınır. Kapalı konaklamaya hizmet ekleme veya tekrar check-out `409` döndürür.
+
+### API doğrulaması
+
+Korumalı adreslerde token eksik veya geçersizse `401`, rol uygun değilse `403` döner. Geçersiz istek alanları `400`, bulunamayan konaklama veya ek hizmet `404` döndürür.
+
+Geliştirme sırasında geçici PostgreSQL üzerinde kayıt/giriş, tekrar kayıt sırasında rollback, JWT kontrolü, rezervasyon çakışması ve sahipliği, resepsiyon rolü, check-in, ek hizmetin tutara dahil edilmesi, check-out sonrası ödeme ve oda durumu test edildi. Tekrar check-out'un ikinci ödeme oluşturmadığı ve kapalı konaklamaya hizmet eklenemediği doğrulandı.
+
+Bu HTTP kontrolleri PowerShell istekleriyle çalıştırıldı. Teslim edilecek Postman/Swagger koleksiyonu ve test videosu geliştirme planında bulunuyor.
