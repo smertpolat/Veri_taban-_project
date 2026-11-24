@@ -7,7 +7,7 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
-- Sıradaki geliştirme oda tipi ve oda yönetimi API'leri. Ardından sezon fiyatı, ek hizmet ve personel yönetimi, rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
+- Yönetici için oda tipi ve oda ekleme, listeleme, güncelleme ve silme API'leri tamamlandı. Sıradaki geliştirme sezon fiyatı yönetimi. Ardından ek hizmet ve personel yönetimi, rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
 - Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
 
 ## PostgreSQL kurulumu
@@ -168,6 +168,39 @@ Check-out gövdesinde ödeme türü `nakit` veya `kart` olabilir.
 ```
 
 Check-out prosedürü tutarı hesaplar, konaklamayı kapatır, ödemeyi kaydeder, odayı `temizlikte` ve rezervasyonu `tamamlandi` yapar. İşlemler aynı transaction içinde çalışır. Başarısızlıkta değişiklikler geri alınır. Kapalı konaklamaya hizmet ekleme veya tekrar check-out `409` döndürür.
+
+### Yönetici için oda ve oda tipi yönetimi
+
+Bu uç noktalarda `yonetici` rolündeki hesabın JWT'sini Postman **Authorization → Bearer Token** alanına gir. Personelle ilişkilendirilmiş yönetici hesabı gerekir. İlk kurulum betiğinde hazır yönetici hesabı bulunmaz. Hesap yönetimi sonraki geliştirme adımlarındadır.
+
+| Yöntem | Yol | Başarılı yanıt |
+| --- | --- | --- |
+| GET | `/api/yonetici/oda-tipleri` | `200`, oda tipleri listesi |
+| POST | `/api/yonetici/oda-tipleri` | `201`, yeni kaydın `id` değeri |
+| PUT | `/api/yonetici/oda-tipleri/{id}` | `204` |
+| DELETE | `/api/yonetici/oda-tipleri/{id}` | `204` |
+| GET | `/api/yonetici/odalar` | `200`, odalar listesi |
+| POST | `/api/yonetici/odalar` | `201`, yeni kaydın `id` değeri |
+| PUT | `/api/yonetici/odalar/{id}` | `204` |
+| DELETE | `/api/yonetici/odalar/{id}` | `204` |
+
+Oda tipi ekleme ve güncelleme için JSON gövdesi:
+
+```json
+{"ad": "Aile", "kapasite": 4, "aciklama": "Aile odası", "temelFiyat": 4500.00}
+```
+
+Oda ekleme ve güncelleme için JSON gövdesi:
+
+```json
+{"numara": "501", "kat": 5, "odaTipiId": 1, "durum": "bos"}
+```
+
+`odaTipiId` alanında mevcut bir oda tipinin kimliğini kullan. PUT isteğinde tüm zorunlu alanları gönder. Kimlik URL'den alınır. Kapasite pozitif, fiyat sıfır veya pozitif ve en fazla iki ondalık basamaklı olmalıdır. Oda durumu `bos`, `dolu`, `temizlikte` veya `bakimda` olabilir.
+
+Eksik/geçersiz alanlar `400`, uygun olmayan rol `403`, güncellenecek veya silinecek kaydın bulunamaması `404` döndürür. Aynı oda numarası/tip adı, bulunmayan oda tipine bağlantı veya ilişkili kayıtların silinmesi `409` döndürür. Rezervasyonu olan oda ve oda/sezon fiyatı tarafından kullanılan oda tipi, PostgreSQL yabancı anahtarlarıyla korunur.
+
+Geçici PostgreSQL üzerinde her iki kaynak için oluşturma, listeleme, güncelleme ve silme doğrulandı. Misafir erişiminin reddedilmesi, yinelenen tip adı, geçersiz oda durumu, ilişkili tipin silinememesi ve bulunmayan oda için hata yanıtı kontrol edildi.
 
 ### API doğrulaması
 
