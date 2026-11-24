@@ -7,7 +7,7 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
-- Yönetici için oda tipi, oda, sezon fiyatı ve ek hizmet ekleme, listeleme, güncelleme ve silme API'leri tamamlandı. Sıradaki geliştirme personel ve hesap yönetimi. Ardından rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
+- Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi tamamlandı. Sıradaki geliştirme rapor API'leri. Ardından misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
 - Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
 
 ## PostgreSQL kurulumu
@@ -141,7 +141,7 @@ Giriş tarihi bugün veya gelecekte olmalı, çıkış tarihi girişten sonra ol
 
 ### Resepsiyon işlemleri
 
-Bu isteklerde `resepsiyon` rolündeki hesabın tokenını kullan. Hesabın `kullanici.personel_id` alanı bir personel kaydına bağlı olmalıdır. İlk SQL betiği personel ve kullanıcı hesabı oluşturmuyor. Personel hesabı yönetimi geliştirme sırasındadır. `/api/auth/kayit` üzerinden açılan hesaplar `misafir` rolündedir. Mevcut bir resepsiyon hesabıyla `/api/auth/giris` üzerinden token alınabilir.
+Bu isteklerde `resepsiyon` rolündeki hesabın tokenını kullan. Hesabın `kullanici.personel_id` alanı bir personel kaydına bağlı olmalıdır. Resep­siyon hesabını personel yönetimi API'leriyle oluşturabilirsin. `/api/auth/kayit` üzerinden açılan hesaplar `misafir` rolündedir. Resepsiyon hesabıyla `/api/auth/giris` üzerinden token alınabilir.
 
 | Yöntem | Yol | İşlem | Başarılı yanıt |
 | --- | --- | --- | --- |
@@ -171,7 +171,7 @@ Check-out prosedürü tutarı hesaplar, konaklamayı kapatır, ödemeyi kaydeder
 
 ### Yönetici için oda ve oda tipi yönetimi
 
-Bu uç noktalarda `yonetici` rolündeki hesabın JWT'sini Postman **Authorization → Bearer Token** alanına gir. Personelle ilişkilendirilmiş yönetici hesabı gerekir. İlk kurulum betiğinde hazır yönetici hesabı bulunmaz. Hesap yönetimi sonraki geliştirme adımlarındadır.
+Bu uç noktalarda `yonetici` rolündeki hesabın JWT'sini Postman **Authorization → Bearer Token** alanına gir. Personelle ilişkilendirilmiş yönetici hesabı gerekir. İlk hesabı aşağıdaki ilk yönetici kurulumu ile oluşturabilirsin.
 
 | Yöntem | Yol | Başarılı yanıt |
 | --- | --- | --- |
@@ -257,6 +257,63 @@ Hizmet adı zorunlu ve en fazla 100 karakterdir. Birim fiyat sıfır veya poziti
 Fiyat güncellemesi sonraki hizmet ekleme işlemlerinde uygulanır. Daha önce `konaklama_hizmeti` tablosuna kaydedilmiş `uygulanan_birim_fiyat` korunur. Konaklamaya hizmet eklerken hizmet listesindeki kimliği resepsiyon API'sinin `hizmetId` alanında kullan.
 
 Geçici PostgreSQL üzerinde oluşturma, listeleme, güncelleme, silme, rol kontrolü, yinelenen ad, boş ad, negatif fiyat, fazla ondalık basamak ve bulunamayan kayıt senaryoları doğrulandı. Kullanılmış hizmetin silinemediği ve fiyat değişiminden sonra geçmiş hizmet fiyatının korunduğu kontrol edildi.
+
+### Personel ve hesap yönetimi
+
+Yönetici tokenı ile aşağıdaki uç noktaları kullan. Adreslerin başına `http://127.0.0.1:8080` ekle.
+
+| Yöntem | Yol | Sonuç |
+| --- | --- | --- |
+| GET | `/api/yonetici/personeller` | `200`, personel listesi |
+| POST | `/api/yonetici/personeller` | `201`, personel kimliği |
+| PUT | `/api/yonetici/personeller/{id}` | `204`, personel güncellendi |
+| DELETE | `/api/yonetici/personeller/{id}` | `204`, personel silindi |
+| GET | `/api/yonetici/personeller/hesaplar` | `200`, hesap kimliği, personel kimliği, kullanıcı adı ve rol |
+| PUT | `/api/yonetici/personeller/{id}/hesap` | `200`, oluşturulan veya güncellenen hesap kimliği |
+| DELETE | `/api/yonetici/personeller/{id}/hesap` | `204`, giriş hesabı silindi |
+
+Personel ekleme/güncelleme için **Body → raw → JSON** gövdesi:
+
+```json
+{
+  "ad": "Deniz",
+  "soyad": "Örnek",
+  "gorev": "resepsiyon",
+  "iseGirisTarihi": "2026-11-24"
+}
+```
+
+Görev `resepsiyon`, `kat_gorevlisi` veya `yonetici` olabilir. Ad, soyad ve işe giriş tarihi zorunludur. Personel oluşturduktan sonra dönen kimliği hesap adresinde kullan.
+
+```json
+{
+  "kullaniciAdi": "deniz.ornek",
+  "parola": "OrnekParola2026!"
+}
+```
+
+Hesap PUT isteği, hesabı oluşturur veya mevcut hesabın kullanıcı adı ve parolasını değiştirir. İki alan da zorunludur. Parola en az 8 karakter ve en fazla 72 UTF-8 baytı olmalıdır. Rol personelin görevinden alınır. Kat görevlisi için giriş rolü bulunmadığından hesap açma `409` döndürür.
+
+Personel görevi değiştiğinde bağlı hesabın rolü aynı transaction içinde güncellenir. Hesabı olan personeli kat görevlisine değiştirmek `409` döndürür ve değişiklik geri alınır. Önce hesabı silip ardından görevi değiştirebilirsin.
+
+Her korumalı istekte JWT'deki hesap, rol ve parola sürümü veritabanıyla kontrol edilir. Parola/kullanıcı adı/rol değiştiğinde veya hesap silindiğinde eski token `401` döndürür. Hesap listesi parola ya da parola hash'i içermez.
+
+Geçersiz alanlar `400`, yetkisiz rol `403`, bulunamayan personel/hesap `404` döndürür. Yinelenen kullanıcı adı veya ilişkili personeli silme `409` döndürür. Hesap, konaklama veya temizlik kaydı tarafından kullanılan personel yabancı anahtarlarla korunur.
+
+### İlk yönetici kurulumu
+
+İlk SQL kurulumu sonrasında yönetici hesabı oluşturmak için IntelliJ çalıştırma yapılandırmasının ortam değişkenlerine aşağıdakileri ekle:
+
+- `SPRING_PROFILES_ACTIVE=ilk-yonetici`
+- `OTEL_ADMIN_USERNAME` için seçtiğin kullanıcı adı
+- `OTEL_ADMIN_PASSWORD` için en az 8 karakterli seçtiğin parola
+- PostgreSQL bağlantısı için mevcut `OTEL_DB_PASSWORD`
+
+Uygulamayı başlattığında veritabanında yönetici hesabı yoksa `İlk Yönetici` personeli ve BCrypt parolalı hesabı tek transaction içinde oluşturulur. Yönetici zaten varsa kurulum işlem yapmaz. Sonrasında profil ve yönetici kurulum değişkenlerini çalıştırma yapılandırmasından kaldırıp uygulamayı normal şekilde yeniden başlat. Hesabınla `/api/auth/giris` üzerinden giriş yap, personel bilgilerini yönetim API'sinden güncelle.
+
+Kurulum parolasını veya parola içeren IntelliJ yapılandırmasını Git'e ekleme. Son yönetici hesabını silmek veya görevini değiştirmek yönetim erişimini kaldırır. Bu durumda ilk yönetici profiliyle yeniden hesap kurulabilir.
+
+Geçici PostgreSQL testlerinde personel ve hesap oluşturma, listeleme, güncelleme, silme, resepsiyon erişimi, ilişkili personelin korunması, rol değişikliği ve parola yenileme sonrası eski tokenın reddedilmesi doğrulandı. İlk yönetici profilinin hesabı oluşturduğu ve bu hesapla yönetici API'sine giriş yapılabildiği ayrıca kontrol edildi.
 
 ### API doğrulaması
 

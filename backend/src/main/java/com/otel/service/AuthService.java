@@ -60,6 +60,7 @@ public class AuthService {
                 .expiresAt(simdi.plusSeconds(3600))
                 .claim("kullaniciAdi", kullanici.kullaniciAdi())
                 .claim("rol", kullanici.rol())
+                .claim("parolaSurumu", com.otel.config.HesapTokenKontrol.parolaSurumu(kullanici.parolaHash()))
                 .build();
         return jwt.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
                 .getTokenValue();
