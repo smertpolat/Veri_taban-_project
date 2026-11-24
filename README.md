@@ -7,7 +7,7 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
-- Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi tamamlandı. Sıradaki geliştirme rapor API'leri. Ardından misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
+- Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi ile aylık doluluk/gelir ve güncel oda durumu raporları tamamlandı. Sıradaki geliştirme misafirin konaklama geçmişi. Ardından frontend ve teslim testleri tamamlanacak.
 - Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
 
 ## PostgreSQL kurulumu
@@ -314,6 +314,30 @@ Uygulamayı başlattığında veritabanında yönetici hesabı yoksa `İlk Yöne
 Kurulum parolasını veya parola içeren IntelliJ yapılandırmasını Git'e ekleme. Son yönetici hesabını silmek veya görevini değiştirmek yönetim erişimini kaldırır. Bu durumda ilk yönetici profiliyle yeniden hesap kurulabilir.
 
 Geçici PostgreSQL testlerinde personel ve hesap oluşturma, listeleme, güncelleme, silme, resepsiyon erişimi, ilişkili personelin korunması, rol değişikliği ve parola yenileme sonrası eski tokenın reddedilmesi doğrulandı. İlk yönetici profilinin hesabı oluşturduğu ve bu hesapla yönetici API'sine giriş yapılabildiği ayrıca kontrol edildi.
+
+### Yönetici raporları
+
+Postman **Authorization → Bearer Token** alanında yönetici hesabının tokenını kullan.
+
+| Yöntem | Adres | Sonuç |
+| --- | --- | --- |
+| GET | `http://127.0.0.1:8080/api/yonetici/raporlar/aylik?ay=2026-11-01` | Aylık doluluk ve gelir |
+| GET | `http://127.0.0.1:8080/api/yonetici/raporlar/oda-durumlari` | Tüm odaların güncel durumu ve son tamamlanan temizlik zamanı |
+
+`ay` zorunludur ve `YYYY-MM-DD` biçiminde bir tarih alır. Girilen tarihin ait olduğu ay raporlanır. Başarılı yanıt `200`, eksik veya geçersiz tarih `400`, uygun olmayan rol `403` döndürür.
+
+Aylık rapor `aylik_doluluk_gelir_raporu` prosedürünü çağırır ve şu alanları döndürür:
+
+- `doluOdaGecesi` check-in yapılmış rezervasyonların ilgili aya düşen gece sayısıdır.
+- `toplamOdaGecesi` mevcut oda sayısı ile ayın gün sayısının çarpımıdır.
+- `dolulukYuzdesi` bu iki değerden hesaplanan yüzdedir.
+- `gelir` ödeme tarihi ilgili aya düşen kayıtların toplamıdır.
+
+Doluluk hesabı başlamış konaklamaların planlanan rezervasyon tarihlerini kullanır. Prosedürün doluluk ve gelir sorguları aynı transaction ve aynı veri görünümü üzerinden çalışır.
+
+Oda raporu `oda_guncel_durum` görünümünden `id`, `numara`, `kat`, `odaTipi`, `durum` ve `sonTemizlikZamani` alanlarını döndürür. Tamamlanmış temizlik kaydı bulunmayan odalarda `sonTemizlikZamani` değeri `null` olur. Tarih-saat değeri saat dilimi farkını içerir.
+
+Geçici PostgreSQL üzerinde ay sınırını geçen rezervasyonun gece sayısı, yüzde ve gelir hesabı, boş ay, geçersiz/eksik tarih, misafir erişiminin reddedilmesi, oda sayısı ve temizlik kaydı olmayan oda doğrulandı.
 
 ### API doğrulaması
 
