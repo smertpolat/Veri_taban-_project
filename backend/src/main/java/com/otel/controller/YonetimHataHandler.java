@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(assignableTypes = {
-        OdaYonetimController.class, OdaTipiYonetimController.class, SezonFiyatiYonetimController.class
+        OdaYonetimController.class, OdaTipiYonetimController.class,
+        SezonFiyatiYonetimController.class, EkHizmetYonetimController.class
 })
 public class YonetimHataHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)

@@ -7,7 +7,7 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
-- Yönetici için oda tipi, oda ve sezon fiyatı ekleme, listeleme, güncelleme ve silme API'leri tamamlandı. Sıradaki geliştirme ek hizmet yönetimi. Ardından personel ve hesap yönetimi, rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
+- Yönetici için oda tipi, oda, sezon fiyatı ve ek hizmet ekleme, listeleme, güncelleme ve silme API'leri tamamlandı. Sıradaki geliştirme personel ve hesap yönetimi. Ardından rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
 - Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
 
 ## PostgreSQL kurulumu
@@ -231,6 +231,32 @@ Aynı oda tipindeki sezonlar çakışırsa `409` döner. Önceki sezonun bittiğ
 Tutar hesaplama prosedürü güncel sezon kayıtlarını okur. Sezon fiyatı değiştirilirse sonraki tutar hesaplamaları yeni fiyatı kullanır. Sezon silinirse o tarihlerde oda tipinin temel fiyatı kullanılır. Kaydedilmiş ödeme tutarı kendi ödeme kaydında saklanır.
 
 Geçici PostgreSQL üzerinde oluşturma, listeleme, fiyat güncelleme, silme, rol kontrolü, çakışan ekleme/güncelleme, bitiş gününde başlayan sezon, negatif fiyat, ters tarihler ve bulunmayan kayıt senaryoları doğrulandı. Başarısız güncellemede eski sezon kaydının korunduğu kontrol edildi.
+
+### Yönetici için ek hizmet yönetimi
+
+Bu isteklerde `yonetici` rolündeki hesabın tokenını **Authorization → Bearer Token** alanına gir. Adreslerin başına `http://127.0.0.1:8080` ekle.
+
+| Yöntem | Yol | Başarılı yanıt |
+| --- | --- | --- |
+| GET | `/api/yonetici/ek-hizmetler` | `200`, hizmet listesi |
+| POST | `/api/yonetici/ek-hizmetler` | `201`, yeni kaydın `id` değeri |
+| PUT | `/api/yonetici/ek-hizmetler/{id}` | `204` |
+| DELETE | `/api/yonetici/ek-hizmetler/{id}` | `204` |
+
+POST ve PUT için **Body → raw → JSON** seç. PUT isteğinde iki alanı da gönder.
+
+```json
+{
+  "ad": "Havaalanı transferi",
+  "birimFiyat": 750.00
+}
+```
+
+Hizmet adı zorunlu ve en fazla 100 karakterdir. Birim fiyat sıfır veya pozitif, en fazla 10 tam sayı ve 2 ondalık basamaklı olmalıdır. Geçersiz alanlar `400`, misafir erişimi `403`, güncellenecek/silinecek hizmet bulunamazsa `404` döner. Aynı hizmet adıyla tekrar kayıt veya konaklamalarda kullanılan hizmeti silme girişimi `409` döndürür.
+
+Fiyat güncellemesi sonraki hizmet ekleme işlemlerinde uygulanır. Daha önce `konaklama_hizmeti` tablosuna kaydedilmiş `uygulanan_birim_fiyat` korunur. Konaklamaya hizmet eklerken hizmet listesindeki kimliği resepsiyon API'sinin `hizmetId` alanında kullan.
+
+Geçici PostgreSQL üzerinde oluşturma, listeleme, güncelleme, silme, rol kontrolü, yinelenen ad, boş ad, negatif fiyat, fazla ondalık basamak ve bulunamayan kayıt senaryoları doğrulandı. Kullanılmış hizmetin silinemediği ve fiyat değişiminden sonra geçmiş hizmet fiyatının korunduğu kontrol edildi.
 
 ### API doğrulaması
 
