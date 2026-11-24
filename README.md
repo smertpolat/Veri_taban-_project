@@ -7,7 +7,7 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
-- Yönetici için oda tipi ve oda ekleme, listeleme, güncelleme ve silme API'leri tamamlandı. Sıradaki geliştirme sezon fiyatı yönetimi. Ardından ek hizmet ve personel yönetimi, rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
+- Yönetici için oda tipi, oda ve sezon fiyatı ekleme, listeleme, güncelleme ve silme API'leri tamamlandı. Sıradaki geliştirme ek hizmet yönetimi. Ardından personel ve hesap yönetimi, rapor API'leri, misafirin konaklama geçmişi, frontend ve teslim testleri tamamlanacak.
 - Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
 
 ## PostgreSQL kurulumu
@@ -201,6 +201,36 @@ Oda ekleme ve güncelleme için JSON gövdesi:
 Eksik/geçersiz alanlar `400`, uygun olmayan rol `403`, güncellenecek veya silinecek kaydın bulunamaması `404` döndürür. Aynı oda numarası/tip adı, bulunmayan oda tipine bağlantı veya ilişkili kayıtların silinmesi `409` döndürür. Rezervasyonu olan oda ve oda/sezon fiyatı tarafından kullanılan oda tipi, PostgreSQL yabancı anahtarlarıyla korunur.
 
 Geçici PostgreSQL üzerinde her iki kaynak için oluşturma, listeleme, güncelleme ve silme doğrulandı. Misafir erişiminin reddedilmesi, yinelenen tip adı, geçersiz oda durumu, ilişkili tipin silinememesi ve bulunmayan oda için hata yanıtı kontrol edildi.
+
+### Yönetici için sezon fiyatı yönetimi
+
+Bu isteklerde yönetici tokenını kullan. Adreslerin başına `http://127.0.0.1:8080` ekle.
+
+| Yöntem | Yol | Başarılı yanıt |
+| --- | --- | --- |
+| GET | `/api/yonetici/sezon-fiyatlari` | `200`, oda tipi ve başlangıç tarihine göre sıralı liste |
+| POST | `/api/yonetici/sezon-fiyatlari` | `201`, yeni kaydın `id` değeri |
+| PUT | `/api/yonetici/sezon-fiyatlari/{id}` | `204` |
+| DELETE | `/api/yonetici/sezon-fiyatlari/{id}` | `204` |
+
+POST ve PUT için **Body → raw → JSON** seç ve şu biçimde gönder. `odaTipiId` mevcut bir oda tipinin kimliği olmalıdır. PUT isteğinde tüm alanları gönder.
+
+```json
+{
+  "odaTipiId": 1,
+  "baslangicTarihi": "2027-06-01",
+  "bitisTarihi": "2027-09-01",
+  "gecelikFiyat": 2500.00
+}
+```
+
+Başlangıç günü dahil, bitiş günü hariçtir. Örnekte son fiyatlandırılan gece 31 Ağustos gecesidir. Bitiş tarihi başlangıçtan sonra olmalı, fiyat sıfır veya pozitif ve en fazla iki ondalık basamaklı olmalıdır.
+
+Aynı oda tipindeki sezonlar çakışırsa `409` döner. Önceki sezonun bittiği gün başlayan yeni sezon kabul edilir. Çakışma PostgreSQL kısıtıyla hem ekleme hem güncellemede denetlenir. Bulunmayan oda tipi `409`, geçersiz alanlar veya tarih sırası `400`, güncellenecek/silinecek sezon bulunamazsa `404` döner.
+
+Tutar hesaplama prosedürü güncel sezon kayıtlarını okur. Sezon fiyatı değiştirilirse sonraki tutar hesaplamaları yeni fiyatı kullanır. Sezon silinirse o tarihlerde oda tipinin temel fiyatı kullanılır. Kaydedilmiş ödeme tutarı kendi ödeme kaydında saklanır.
+
+Geçici PostgreSQL üzerinde oluşturma, listeleme, fiyat güncelleme, silme, rol kontrolü, çakışan ekleme/güncelleme, bitiş gününde başlayan sezon, negatif fiyat, ters tarihler ve bulunmayan kayıt senaryoları doğrulandı. Başarısız güncellemede eski sezon kaydının korunduğu kontrol edildi.
 
 ### API doğrulaması
 
