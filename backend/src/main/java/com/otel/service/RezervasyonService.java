@@ -1,6 +1,7 @@
 package com.otel.service;
 
 import com.otel.entity.Rezervasyon;
+import com.otel.entity.KonaklamaGecmisi;
 import com.otel.repository.RezervasyonRepository;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -21,6 +22,10 @@ public class RezervasyonService {
 
     public List<Rezervasyon> listele(long kullaniciId) {
         return rezervasyonlar.listele(kullaniciId);
+    }
+
+    public List<KonaklamaGecmisi> konaklamaGecmisi(long kullaniciId) {
+        return rezervasyonlar.konaklamaGecmisi(kullaniciId);
     }
 
     @Transactional

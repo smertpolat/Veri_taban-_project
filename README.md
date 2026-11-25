@@ -7,7 +7,7 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
-- Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi ile aylık doluluk/gelir ve güncel oda durumu raporları tamamlandı. Sıradaki geliştirme misafirin konaklama geçmişi. Ardından frontend ve teslim testleri tamamlanacak.
+- Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi ile aylık doluluk/gelir ve güncel oda durumu raporları tamamlandı. Misafirin konaklama geçmişi API'si de tamamlandı. Sıradaki geliştirme frontend, ardından teslim testleri.
 - Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
 
 ## PostgreSQL kurulumu
@@ -122,7 +122,10 @@ Bu isteklerde Postman'ın **Authorization → Bearer Token** alanına misafir he
 | --- | --- | --- | --- |
 | POST | `/api/rezervasyonlar` | Rezervasyon oluşturma | `201`, rezervasyon bilgileri |
 | GET | `/api/rezervasyonlar` | Giriş yapan misafirin rezervasyonları | `200`, liste |
+| GET | `/api/rezervasyonlar/konaklama-gecmisi` | Giriş yapan misafirin tamamlanan konaklamaları | `200`, liste |
 | PUT | `/api/rezervasyonlar/{id}/iptal` | Kendi rezervasyonunu iptal etme | `204`, boş yanıt |
+
+Konaklama geçmişi gerçek giriş/çıkış zamanını, oda numarasını ve kaydedilmiş ödemelerin toplamını en yeni çıkış önce olacak biçimde döndürür. Ödeme kaydı olmayan eski konaklamalarda tutar sıfırdır.
 
 Rezervasyon oluşturma gövdesi aşağıdaki biçimdedir. `odaId` için müsait oda aramasından dönen bir kimliği seç. Tarihleri test gününe göre düzenle.
 

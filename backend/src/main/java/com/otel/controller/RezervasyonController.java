@@ -1,6 +1,7 @@
 package com.otel.controller;
 
 import com.otel.entity.Rezervasyon;
+import com.otel.entity.KonaklamaGecmisi;
 import com.otel.service.RezervasyonService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.FutureOrPresent;
@@ -25,6 +26,11 @@ public class RezervasyonController {
     @GetMapping
     public List<Rezervasyon> listele(@AuthenticationPrincipal Jwt jwt) {
         return rezervasyonlar.listele(Long.parseLong(jwt.getSubject()));
+    }
+
+    @GetMapping("/konaklama-gecmisi")
+    public List<KonaklamaGecmisi> konaklamaGecmisi(@AuthenticationPrincipal Jwt jwt) {
+        return rezervasyonlar.konaklamaGecmisi(Long.parseLong(jwt.getSubject()));
     }
 
     @PostMapping
