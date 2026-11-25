@@ -8,7 +8,15 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
 - Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi ile aylık doluluk/gelir ve güncel oda durumu raporları tamamlandı. Misafirin konaklama geçmişi API'si de tamamlandı. Sıradaki geliştirme frontend, ardından teslim testleri.
-- Frontend geliştirildiğinde aynı deponun kökünde `frontend/` altında yer alacak.
+- React frontend aynı deponun kökündeki `frontend/` klasöründe geliştiriliyor.
+
+## Docker ile tek komutta çalıştırma
+
+Docker Desktop açıkken proje kökünde `docker compose up --build -d` çalıştır. Arayüz `http://localhost:5173`, API `http://localhost:8080` adresinde açılır. Durdurmak için `docker compose down` kullan. Sonraki başlatmalarda kod değişmediyse `docker compose up -d` yeterlidir.
+
+Veritabanını tarayıcıda incelemek için `http://localhost:8081` adresindeki Adminer'ı aç. Sistem `PostgreSQL`, sunucu `host.docker.internal`, kullanıcı `postgres`, veritabanı `otel_db` ve parola yerel `.env` dosyasındaki değerdir. Kayıt olan misafirler `misafir`, giriş hesapları `kullanici` tablosundadır. Bu adres yalnızca aynı bilgisayardan erişilebilir.
+
+Compose, bilgisayardaki mevcut PostgreSQL `otel_db` veritabanına bağlanır. Yerel `.env` dosyasındaki `OTEL_DB_PASSWORD` kullanılır; bu dosya Git'e eklenmez. Docker Desktop'ın çalışması ve PostgreSQL'in 5432 portundan erişilebilir olması gerekir.
 
 ## PostgreSQL kurulumu
 
