@@ -62,6 +62,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(HttpMethod.POST, "/api/auth/kayit", "/api/auth/giris").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/odalar/musait").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/oda-tipleri").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/ben").hasAnyRole("misafir", "resepsiyon", "yonetici")
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/rezervasyonlar", "/api/rezervasyonlar/**").hasRole("misafir")

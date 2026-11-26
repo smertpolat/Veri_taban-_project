@@ -1,5 +1,8 @@
 import React, { useEffect, useState, type FormEvent } from 'react'
 import ReactDOM from 'react-dom/client'
+import { ArrowUpRight, BedDouble, CalendarDays, Hotel, MapPin, Sparkles } from 'lucide-react'
+import GuestBooking from './GuestBooking'
+import StaffDashboard from './StaffDashboard'
 import './style.css'
 
 type Session = { kullaniciAdi: string; rol: string }
@@ -112,28 +115,38 @@ function App() {
     <>
       <a className="skip-link" href="#main">İçeriğe geç</a>
       <header className="site-header">
-        <span className="brand-mark" aria-hidden="true">O</span>
-        <span className="brand-name">Otel Rezervasyon</span>
+        <a className="brand-link" href="#main" aria-label="Otel Rezervasyon ana sayfası">
+          <span className="brand-mark" aria-hidden="true"><Hotel size={22} strokeWidth={1.8} /></span>
+          <span className="brand-name">Otel<span>Rezervasyon</span></span>
+        </a>
+        <span className="header-place"><MapPin size={15} aria-hidden="true" /> {session?.rol === 'yonetici' ? 'Yönetim paneli' : session?.rol === 'resepsiyon' ? 'Resepsiyon paneli' : 'Konaklamanızı keşfedin'}</span>
       </header>
-      <main id="main" className="welcome">
-        <div className="welcome-copy">
-          <span className="eyebrow">Konaklama yönetimi</span>
-          <h1>Her konaklama iyi bir başlangıcı hak eder.</h1>
-          <p>Oda arama, rezervasyon ve konaklama işlemleri için tek bir yer.</p>
-        </div>
-        <section className="login-card" aria-labelledby="login-heading">
+      {session?.rol === 'misafir' ? (
+        <GuestBooking username={session.kullaniciAdi} onLogout={logout} />
+      ) : session?.rol === 'yonetici' || session?.rol === 'resepsiyon' ? (
+        <StaffDashboard role={session.rol} username={session.kullaniciAdi} onLogout={logout} />
+      ) : <main id="main">
+        <div className="welcome">
+          <img className="welcome-image" src="/images/hotel-hero.jpg" alt="Deniz kıyısında gün batımında bir otel" width="1672" height="941" />
+          <div className="welcome-copy">
+            <span className="eyebrow light"><Sparkles size={15} aria-hidden="true" /> Özenle seçilmiş konaklama</span>
+            <h1>Yeni anılara<br /><em>yer açın.</em></h1>
+            <p>Size uygun odayı keşfedin, konaklamanızı kolayca planlayın.</p>
+            <span className="hero-location"><MapPin size={16} aria-hidden="true" /> Deniz kıyısında bir kaçamak</span>
+          </div>
+          <section className="login-card" aria-labelledby="login-heading">
           {checking ? (
             <p role="status">Oturum kontrol ediliyor…</p>
           ) : session ? (
             <>
-              <span className="card-eyebrow">Hoş geldiniz</span>
+              <span className="card-eyebrow">Hesabınız</span>
               <h2 id="login-heading">{session.kullaniciAdi}</h2>
               <p className="account-role">Hesap rolü: {session.rol}</p>
               <button type="button" onClick={logout}>Çıkış yap</button>
             </>
           ) : (
             <>
-              <span className="card-eyebrow">Hesabınız</span>
+              <span className="card-eyebrow"><span className="card-dot" /> Konaklamaya başlayın</span>
               <h2 id="login-heading">{registerMode ? 'Misafir kaydı' : 'Giriş yapın'}</h2>
               <p>{registerMode ? 'Bilgilerinizi girerek misafir hesabı oluşturun.' : 'Rezervasyonlarınıza ve konaklama bilgilerinize ulaşın.'}</p>
               {notice && <p className="form-notice" role="status">{notice}</p>}
@@ -158,7 +171,7 @@ function App() {
                   <label htmlFor="newPassword">Parola</label>
                   <input id="newPassword" name="parola" type="password" autoComplete="new-password"
                     required minLength={8} maxLength={72} />
-                  <button type="submit" disabled={pending}>{pending ? 'Kayıt oluşturuluyor…' : 'Kayıt ol'}</button>
+                  <button type="submit" disabled={pending}>{pending ? 'Kayıt oluşturuluyor…' : <>Kayıt ol <ArrowUpRight size={18} aria-hidden="true" /></>}</button>
                 </form>
               ) : (
                 <form onSubmit={handleLogin}>
@@ -169,7 +182,7 @@ function App() {
                   <label htmlFor="password">Parola</label>
                   <input id="password" name="password" type="password" autoComplete="current-password" required
                     value={password} onChange={event => setPassword(event.target.value)} />
-                  <button type="submit" disabled={pending}>{pending ? 'Giriş yapılıyor…' : 'Giriş yap'}</button>
+                  <button type="submit" disabled={pending}>{pending ? 'Giriş yapılıyor…' : <>Giriş yap <ArrowUpRight size={18} aria-hidden="true" /></>}</button>
                 </form>
               )}
               <button className="switch-mode" type="button" onClick={switchMode}>
@@ -177,8 +190,25 @@ function App() {
               </button>
             </>
           )}
+          </section>
+        </div>
+        <div className="journey-strip" aria-label="Rezervasyon adımları">
+          <div><span><BedDouble size={20} aria-hidden="true" /></span><p><strong>Odanızı keşfedin</strong><small>Görsellerle oda tiplerini inceleyin</small></p></div>
+          <div><span><CalendarDays size={20} aria-hidden="true" /></span><p><strong>Tarihinizi seçin</strong><small>Size uygun günleri arayın</small></p></div>
+          <div><span><ArrowUpRight size={20} aria-hidden="true" /></span><p><strong>Planınızı oluşturun</strong><small>Rezervasyonunuzu hesabınızda görün</small></p></div>
+        </div>
+        <section className="showcase" aria-labelledby="showcase-heading">
+          <div className="section-heading">
+            <div><span className="eyebrow">Konaklama seçenekleri</span><h2 id="showcase-heading">Her yolculuğa uygun bir oda.</h2></div>
+            <p>Oda tiplerini giriş yaptıktan sonra tarih seçerek arayabilirsiniz.</p>
+          </div>
+          <div className="showcase-grid">
+            <figure><img src="/images/standard-room.jpg" alt="Standart oda tipi için örnek iç mekân" width="1672" height="941" loading="lazy" /><figcaption><span>01</span> Standart oda</figcaption></figure>
+            <figure><img src="/images/deluxe-room.jpg" alt="Deluxe oda tipi için örnek iç mekân" width="1672" height="941" loading="lazy" /><figcaption><span>02</span> Deluxe oda</figcaption></figure>
+            <figure><img src="/images/suite-room.jpg" alt="Suit oda tipi için örnek iç mekân" width="1672" height="941" loading="lazy" /><figcaption><span>03</span> Suit oda</figcaption></figure>
+          </div>
         </section>
-      </main>
+      </main>}
     </>
   )
 }

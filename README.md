@@ -7,16 +7,22 @@ Projenin veritabanı PostgreSQL, backend uygulaması Java 21 ve Spring Boot ile 
 - `database/` içinde şema, örnek veri, tetikleyici, prosedür, görünüm ve SQL test betikleri bulunur.
 - `backend/` içinde çalışan Spring Boot API'si bulunur. Controller HTTP isteklerini karşılar, Service iş kurallarını ve transaction sınırlarını yönetir, Repository SQL sorgularını çalıştırır. `entity` paketindeki Java record'ları verileri taşır.
 - Kayıt, JWT ile giriş, müsait oda arama, misafirin rezervasyon oluşturma/listeleme/iptal işlemleri ve resepsiyonun günlük liste, check-in, ek hizmet, tutar ve check-out işlemleri tamamlandı.
-- Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi ile aylık doluluk/gelir ve güncel oda durumu raporları tamamlandı. Misafirin konaklama geçmişi API'si de tamamlandı. Sıradaki geliştirme frontend, ardından teslim testleri.
-- React frontend aynı deponun kökündeki `frontend/` klasöründe geliştiriliyor.
+- Yönetici için oda tipi, oda, sezon fiyatı, ek hizmet, personel ve hesap yönetimi ile aylık doluluk/gelir ve güncel oda durumu raporları tamamlandı. Misafirin konaklama geçmişi API'si de tamamlandı.
+- React frontend `frontend/` klasöründe. Misafir rezervasyonu, yönetici rapor ve oda durumu özeti ile resepsiyonun günlük hareket ve check-in ekranları hazır. Diğer personel işlemlerinin arayüzü sonraki geliştirme adımıdır.
 
 ## Docker ile tek komutta çalıştırma
 
 Docker Desktop açıkken proje kökünde `docker compose up --build -d` çalıştır. Arayüz `http://localhost:5173`, API `http://localhost:8080` adresinde açılır. Durdurmak için `docker compose down` kullan. Sonraki başlatmalarda kod değişmediyse `docker compose up -d` yeterlidir.
 
+Arayüze kendi hesabınla giriş yaptığında rolüne uygun ekran açılır. Yönetici ve resepsiyon ekranları için ilgili personel hesabı gerekir. İlk yönetici hesabı kurulumu aşağıda açıklanır; yönetici daha sonra resepsiyon hesabını personel yönetimi API'siyle oluşturabilir.
+
 Veritabanını tarayıcıda incelemek için `http://localhost:8081` adresindeki Adminer'ı aç. Sistem `PostgreSQL`, sunucu `host.docker.internal`, kullanıcı `postgres`, veritabanı `otel_db` ve parola yerel `.env` dosyasındaki değerdir. Kayıt olan misafirler `misafir`, giriş hesapları `kullanici` tablosundadır. Bu adres yalnızca aynı bilgisayardan erişilebilir.
 
 Compose, bilgisayardaki mevcut PostgreSQL `otel_db` veritabanına bağlanır. Yerel `.env` dosyasındaki `OTEL_DB_PASSWORD` kullanılır; bu dosya Git'e eklenmez. Docker Desktop'ın çalışması ve PostgreSQL'in 5432 portundan erişilebilir olması gerekir.
+
+## Bu projede Codex'i OmniRoute ile açma
+
+PowerShell'i proje kökünde açıp `omniroute launch-codex -- -m codex/gpt-5.6-sol` çalıştır. Komut Codex CLI'yi bu klasörde başlatır ve model isteklerini yerelde çalışan OmniRoute'a yönlendirir. OmniRoute'un önce çalışıyor olması gerekir; `omniroute health` ile durumunu kontrol edebilirsin. Bu yöntem otel uygulamasının frontend veya backend çalışma biçimini değiştirmez. Codex masaüstündeki açık sohbetin sağlayıcısını değiştirmez; OmniRoute üzerinden yeni bir Codex CLI oturumu açar.
 
 ## PostgreSQL kurulumu
 
@@ -132,6 +138,8 @@ Bu isteklerde Postman'ın **Authorization → Bearer Token** alanına misafir he
 | GET | `/api/rezervasyonlar` | Giriş yapan misafirin rezervasyonları | `200`, liste |
 | GET | `/api/rezervasyonlar/konaklama-gecmisi` | Giriş yapan misafirin tamamlanan konaklamaları | `200`, liste |
 | PUT | `/api/rezervasyonlar/{id}/iptal` | Kendi rezervasyonunu iptal etme | `204`, boş yanıt |
+
+Misafir arayüzü önce `GET /api/oda-tipleri` ile oda tiplerini alır, ardından seçilen tarih ve tip için açık `GET /api/odalar/musait` uç noktasını kullanır. Giriş yapan misafir arama sonucundan rezervasyon oluşturabilir, kendi rezervasyonlarını görebilir ve uygun durumdaki rezervasyonlarını iptal edebilir.
 
 Konaklama geçmişi gerçek giriş/çıkış zamanını, oda numarasını ve kaydedilmiş ödemelerin toplamını en yeni çıkış önce olacak biçimde döndürür. Ödeme kaydı olmayan eski konaklamalarda tutar sıfırdır.
 
